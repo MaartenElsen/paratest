@@ -79,7 +79,7 @@ abstract class BaseRunner
     {
         $this->options = new Options($opts);
         $this->interpreter = new LogInterpreter();
-        $this->printer = new ResultPrinter($this->interpreter);
+        $this->printer = new ResultPrinter($this->interpreter, $opts);
     }
 
     public function run()

@@ -65,8 +65,11 @@ abstract class MetaProvider
         $suites = $this->isSingle ? $this->suites : $this->suites[0]->suites;
         foreach ($suites as $suite) {
             $messages = array_merge($messages, array_reduce($suite->cases, function ($result, $case) use ($type) {
-                return array_merge($result, array_reduce($case->$type, function ($msgs, $msg) {
-                    $msgs[] = $msg['text'];
+                return array_merge($result, array_reduce($case->$type, function ($msgs, $msg) use ($case) {
+                    $msgs[] = array(
+                        'text' => $msg['text'],
+                        'case' => $case->class . '::' . $case->name,
+                    );
                     return $msgs;
                 }, array()));
             }, array()));

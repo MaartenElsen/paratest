@@ -102,8 +102,14 @@ class ResultPrinter
      */
     protected $processSkipped = false;
 
-    public function __construct(LogInterpreter $results)
+    /**
+     * @var Options
+     */
+    protected $options;
+
+    public function __construct(LogInterpreter $results, $opts)
     {
+        $this->options = $opts;
         $this->results = $results;
         $this->timer = new \PHP_Timer();
     }
@@ -429,6 +435,36 @@ class ResultPrinter
         if ($count == 0) {
             return '';
         }
+
+        // If the repeat option was set, we only show the different defects instead of {repeat} times the same.
+        if (!empty($this->options['repeat']) && $this->options['repeat'] > 1) {
+            $filtered_defects = array();
+            foreach ($defects as $key => $defect) {
+                if (array_key_exists($defect['case'], $filtered_defects)) {
+                    $filtered_defects[$defect['case']] += 1;
+                    unset($defects[$key]);
+                }
+
+                if (!array_key_exists($defect['case'], $filtered_defects)) {
+                    $filtered_defects[$defect['case']] = 1;
+                }
+            }
+
+            // if a case succeeded after it failed, we presume it was a random failure and we don't see the failure as
+            // an actual failure.
+            foreach ($filtered_defects as $case => $fails) {
+                if ($fails < $this->options['repeat']) {
+                    foreach ($defects as $key => $defect) {
+                        if ($case == $defect['case']) {
+                            unset($defects[$key]);
+                        }
+                    }
+                }
+            }
+
+            $count = sizeof($defects);
+        }
+
         $output = sprintf(
             "There %s %d %s%s:\n",
             ($count == 1) ? 'was' : 'were',
@@ -437,8 +473,10 @@ class ResultPrinter
             ($count == 1) ? '' : 's'
         );
 
-        for ($i = 1; $i <= sizeof($defects); $i++) {
-            $output .= sprintf("\n%d) %s\n", $i, $defects[$i - 1]);
+        $i = 1;
+        foreach ($defects as $defect) {
+            $output .= sprintf("\n%d) %s\n", $i, $defect['text']);
+            $i++;
         }
 
         return $output;
